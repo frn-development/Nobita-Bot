@@ -2,14 +2,14 @@ name: Deploy Goat Bot V2
 
 on:
   push:
-    branches: [main]
+    branches: [main] # run only when pushing to main
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v3
 
       - name: Setup Node.js
@@ -18,19 +18,25 @@ jobs:
           node-version: 20
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
-      - name: Build bot
+      - name: Build project
         run: npm run build --if-present
 
-      - name: Deploy to VPS via SSH
+      - name: Run tests
+        run: npm test --if-present
+
+      # 🚀 Deploy to your VPS using SSH
+      - name: Deploy to VPS
         uses: appleboy/ssh-action@v0.1.10
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
+            cd ~/goat-bot-v2 || git clone https://github.com/<your-username>/<your-repo>.git ~/goat-bot-v2
             cd ~/goat-bot-v2
             git pull origin main
-            npm ci
+            npm install
+            npm run build --if-present
             pm2 restart goat-bot || pm2 start npm --name "goat-bot" -- start
